@@ -8,14 +8,14 @@ import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup.LayoutParams;
-import android.widget.Button;
 import android.widget.ImageView;
-
+import android.widget.LinearLayout.LayoutParams;
 import java.io.IOException;
+
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback{
 
@@ -24,14 +24,21 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
     private SurfaceHolder surfaceHolder;
     private boolean previewing = false;
     private LayoutInflater controlInflater = null;
-    private Button takePhoto ;
     private ImageView viewPhoto;
+    private int windowWidth;
+    private int windowHeight;
+    private LayoutParams layoutParams;
+    private View viewControl;
 
     public void onCreate(Bundle savedInstanceState) {
 
          super.onCreate(savedInstanceState);
          setContentView(R.layout.main);
          setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+         windowWidth = getWindowManager().getDefaultDisplay().getWidth();
+         windowHeight = getWindowManager().getDefaultDisplay().getHeight();
+
 
          getWindow().setFormat(PixelFormat.UNKNOWN);
          surfaceView = (SurfaceView)findViewById(R.id.camerapreview);
@@ -40,19 +47,46 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
          surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
          controlInflater = LayoutInflater.from(getBaseContext());
-         View viewControl = controlInflater.inflate(R.layout.control, null);
+         viewControl = controlInflater.inflate(R.layout.control, null);
          LayoutParams layoutParamsControl = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
          this.addContentView(viewControl, layoutParamsControl);
-         takePhoto  = (Button)  viewControl.findViewById(R.id.take_photo);
+
+
+
          viewPhoto = (ImageView) viewControl.findViewById(R.id.image_view);
 
-         takePhoto.setOnClickListener(new View.OnClickListener() {
 
-             public void onClick(View v) {
-                 camera.takePicture(myShutterCallback,myPictureCallback_RAW, myPictureCallback_JPG);
-             }
-         });
 
+        viewPhoto.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                layoutParams = (LayoutParams) viewPhoto.getLayoutParams();
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        int x_cord = (int) event.getRawX();
+                        int y_cord = (int) event.getRawY();
+
+                        if (x_cord > windowWidth) {
+                            x_cord = windowWidth;
+                        }
+                        if (y_cord > windowHeight) {
+                            y_cord = windowHeight;
+                        }
+
+                        layoutParams.leftMargin = x_cord - 20;
+                        layoutParams.topMargin = y_cord - 65;
+
+                        viewPhoto.setLayoutParams(layoutParams);
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
     }
 
     Camera.ShutterCallback myShutterCallback = new Camera.ShutterCallback(){
@@ -119,4 +153,15 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback{
         camera = null;
         previewing = false;
     }
+
+    public void screenShot(){
+        Bitmap screenShotBitmap;
+        View screenShotView = viewControl.getRootView();
+        screenShotView.setDrawingCacheEnabled(true);
+        screenShotBitmap = Bitmap.createBitmap(screenShotView.getDrawingCache());
+        screenShotView.setDrawingCacheEnabled(false);
+        viewPhoto.setImageBitmap(screenShotBitmap);
+
+    }
+
 }
